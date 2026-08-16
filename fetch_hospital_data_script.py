@@ -1,236 +1,181 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": 3,
-   "id": "24888fa2-04e7-49ae-a208-b03dd7281431",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import concurrent.futures\n",
-    "import json\n",
-    "import logging\n",
-    "import os\n",
-    "import re\n",
-    "from datetime import datetime, timezone\n",
-    "import pandas as pd\n",
-    "import requests\n",
-    "\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 4,
-   "id": "00bec994-9b3b-49cc-a7c3-9cfa49332b22",
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "2026-08-16 14:02:28,232 [INFO] Fetching metastore catalog from CMS API...\n",
-      "2026-08-16 14:02:28,429 [INFO] Found 78 datasets under 'Hospitals' theme.\n",
-      "2026-08-16 14:02:28,430 [INFO] Processing 6 updated/new datasets across 5 worker threads.\n",
-      "2026-08-16 14:02:28,431 [INFO] Downloading: Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for ambulatory surgical centers - Facility\n",
-      "2026-08-16 14:02:28,432 [INFO] Downloading: Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for ambulatory surgical centers - National\n",
-      "2026-08-16 14:02:28,433 [INFO] Downloading: Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for ambulatory surgical centers - State\n",
-      "2026-08-16 14:02:28,434 [INFO] Downloading: Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for hospital outpatient departments - Facility\n",
-      "2026-08-16 14:02:28,434 [INFO] Downloading: Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for hospital outpatient departments - National\n",
-      "2026-08-16 14:02:28,537 [ERROR] Failed processing dataset 'Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for ambulatory surgical centers - State' (https://data.cms.gov/provider-data/sites/default/files/resources/f086b4b7fc9d628f08e70ade47dff3c5_1785189946/ASCQR_OAS_CAHPS_STATE.csv): [Errno 2] No such file or directory: './hospital_datasets\\\\outpatient_and_ambulatory_surgery_consumer_assessment_of_healthcare_providers_and_systems_oas_cahps_survey_for_ambulatory_surgical_centers_state.csv'\n",
-      "2026-08-16 14:02:28,538 [INFO] Downloading: Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for hospital outpatient departments - State\n",
-      "2026-08-16 14:02:28,556 [ERROR] Failed processing dataset 'Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for ambulatory surgical centers - National' (https://data.cms.gov/provider-data/sites/default/files/resources/65a38069cc48376e9f519a3609424537_1785189945/ASCQR_OAS_CAHPS_NATIONAL.csv): [Errno 2] No such file or directory: './hospital_datasets\\\\outpatient_and_ambulatory_surgery_consumer_assessment_of_healthcare_providers_and_systems_oas_cahps_survey_for_ambulatory_surgical_centers_national.csv'\n",
-      "2026-08-16 14:02:28,572 [ERROR] Failed processing dataset 'Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for hospital outpatient departments - National' (https://data.cms.gov/provider-data/sites/default/files/resources/fdc286f2f60134775fa4b7f7b249b075_1785189954/OQR_OAS_CAHPS_NATIONAL.csv): [Errno 2] No such file or directory: './hospital_datasets\\\\outpatient_and_ambulatory_surgery_consumer_assessment_of_healthcare_providers_and_systems_oas_cahps_survey_for_hospital_outpatient_departments_national.csv'\n",
-      "2026-08-16 14:02:28,590 [ERROR] Failed processing dataset 'Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for ambulatory surgical centers - Facility' (https://data.cms.gov/provider-data/sites/default/files/resources/8392b7d74209bb3dc54ff1b09635e733_1785189943/ASCQR_OAS_CAHPS_BY_ASC.csv): [Errno 2] No such file or directory: './hospital_datasets\\\\outpatient_and_ambulatory_surgery_consumer_assessment_of_healthcare_providers_and_systems_oas_cahps_survey_for_ambulatory_surgical_centers_facility.csv'\n",
-      "2026-08-16 14:02:28,647 [ERROR] Failed processing dataset 'Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for hospital outpatient departments - State' (https://data.cms.gov/provider-data/sites/default/files/resources/5c995348b26c08179f1149d3b07dcb70_1785189954/OQR_OAS_CAHPS_STATE.csv): [Errno 2] No such file or directory: './hospital_datasets\\\\outpatient_and_ambulatory_surgery_consumer_assessment_of_healthcare_providers_and_systems_oas_cahps_survey_for_hospital_outpatient_departments_state.csv'\n",
-      "2026-08-16 14:02:29,343 [ERROR] Failed processing dataset 'Outpatient and Ambulatory Surgery Consumer Assessment of Healthcare Providers and Systems (OAS CAHPS) survey for hospital outpatient departments - Facility' (https://data.cms.gov/provider-data/sites/default/files/resources/9189f27bb8ab7a4ff8919bdc682bf79a_1785189954/OQR_OAS_CAHPS_BY_HOSPITAL.csv): [Errno 2] No such file or directory: './hospital_datasets\\\\outpatient_and_ambulatory_surgery_consumer_assessment_of_healthcare_providers_and_systems_oas_cahps_survey_for_hospital_outpatient_departments_facility.csv'\n",
-      "2026-08-16 14:02:29,347 [INFO] Pipeline execution completed and metadata state saved.\n"
-     ]
-    }
-   ],
-   "source": [
-    "\n",
-    "\n",
-    "# Configure logging\n",
-    "logging.basicConfig(\n",
-    "    level=logging.INFO,\n",
-    "    format=\"%(asctime)s [%(levelname)s] %(message)s\"\n",
-    ")\n",
-    "\n",
-    "CMS_METASTORE_URL = \"https://data.cms.gov/provider-data/api/1/metastore/schemas/dataset/items\"\n",
-    "STATE_FILE = \"cms_download_metadata.json\"\n",
-    "OUTPUT_DIR = \"./hospital_datasets\"\n",
-    "\n",
-    "\n",
-    "def to_snake_case(header: str) -> str:\n",
-    "    \"\"\"\n",
-    "    Converts mixed-case string with spaces/special characters to clean snake_case.\n",
-    "    Example: \"Patients’ rating of the facility linear mean score\" -> \n",
-    "             \"patients_rating_of_the_facility_linear_mean_score\"\n",
-    "    \"\"\"\n",
-    "    # Remove apostrophes/quotes without adding spaces (e.g., Patients' -> Patients)\n",
-    "    header = re.sub(r\"['’`‘]\", \"\", header)\n",
-    "    # Replace non-alphanumeric characters with spaces\n",
-    "    header = re.sub(r\"[^\\w\\s]\", \" \", header)\n",
-    "    # Strip leading/trailing whitespace, lowercase, and join on single underscore\n",
-    "    header = header.strip().lower()\n",
-    "    return re.sub(r\"\\s+\", \"_\", header)\n",
-    "\n",
-    "\n",
-    "def load_metadata_state(filepath: str) -> dict:\n",
-    "    \"\"\"Loads state tracking dictionary from local JSON file.\"\"\"\n",
-    "    if os.path.exists(filepath):\n",
-    "        with open(filepath, \"r\") as f:\n",
-    "            return json.load(f)\n",
-    "    return {}\n",
-    "\n",
-    "\n",
-    "def save_metadata_state(filepath: str, state: dict) -> None:\n",
-    "    \"\"\"Saves updated state tracking dictionary to local JSON file.\"\"\"\n",
-    "    with open(filepath, \"w\") as f:\n",
-    "        json.dump(state, f, indent=2)\n",
-    "\n",
-    "\n",
-    "def fetch_hospital_datasets() -> list:\n",
-    "    \"\"\"Fetches full metastore catalog from CMS and filters for 'Hospitals' theme.\"\"\"\n",
-    "    logging.info(\"Fetching metastore catalog from CMS API...\")\n",
-    "    response = requests.get(CMS_METASTORE_URL, timeout=30)\n",
-    "    response.raise_for_status()\n",
-    "    all_datasets = response.json()\n",
-    "    \n",
-    "\n",
-    "    hospital_datasets = []\n",
-    "    for dataset in all_datasets:\n",
-    "        themes = dataset.get(\"theme\", [])\n",
-    "        if isinstance(themes, str):\n",
-    "            themes = [themes]\n",
-    "\n",
-    "        # Check if 'Hospitals' exists in dataset themes\n",
-    "        if any(\"hospital\" in theme.lower() for theme in themes):\n",
-    "            hospital_datasets.append(dataset)\n",
-    "\n",
-    "    logging.info(f\"Found {len(hospital_datasets)} datasets under 'Hospitals' theme.\")\n",
-    "    return hospital_datasets\n",
-    "\n",
-    "\n",
-    "def process_dataset(dataset: dict, output_dir: str) -> tuple[str, dict] | None:\n",
-    "    \"\"\"\n",
-    "    Downloads CSV distribution, standardizes column headers to snake_case,\n",
-    "    and writes clean csv to output directory.\n",
-    "    \"\"\"\n",
-    "    ds_id = dataset.get(\"identifier\")\n",
-    "    title = dataset.get(\"title\", ds_id)\n",
-    "    modified_dt = dataset.get(\"modified\", \"\")\n",
-    "\n",
-    "    # Locate CSV download URL from distribution array\n",
-    "    download_url = None\n",
-    "    for dist in dataset.get(\"distribution\", []):\n",
-    "        media_type = dist.get(\"mediaType\", \"\").lower()\n",
-    "        fmt = dist.get(\"format\", \"\").lower()\n",
-    "        if \"csv\" in media_type or fmt == \"csv\":\n",
-    "            download_url = dist.get(\"downloadURL\")\n",
-    "            break\n",
-    "\n",
-    "    if not download_url:\n",
-    "        logging.warning(f\"No CSV distribution found for dataset: {title}\")\n",
-    "        return None\n",
-    "\n",
-    "    logging.info(f\"Downloading: {title}\")\n",
-    "\n",
-    "    try:\n",
-    "        # Read dataset into pandas DataFrame directly from stream\n",
-    "        df = pd.read_csv(download_url, low_memory=False)\n",
-    "\n",
-    "        # Transform column headers to snake_case\n",
-    "        df.columns = [to_snake_case(col) for col in df.columns]\n",
-    "\n",
-    "        # Generate clean local filename\n",
-    "        file_slug = to_snake_case(title)\n",
-    "        out_filepath = os.path.join(output_dir, f\"{file_slug}.csv\")\n",
-    "\n",
-    "        # Save processed CSV\n",
-    "        df.to_csv(out_filepath, index=False)\n",
-    "        logging.info(f\"Successfully processed and saved: {out_filepath}\")\n",
-    "\n",
-    "        metadata_entry = {\n",
-    "            \"title\": title,\n",
-    "            \"modified\": modified_dt,\n",
-    "            \"last_processed_at\": datetime.now(timezone.utc).isoformat(),\n",
-    "            \"local_path\": out_filepath\n",
-    "        }\n",
-    "        return ds_id, metadata_entry\n",
-    "\n",
-    "    except Exception as e:\n",
-    "        logging.error(f\"Failed processing dataset '{title}' ({download_url}): {e}\")\n",
-    "        return None\n",
-    "\n",
-    "\n",
-    "def run_pipeline(max_workers: int = 5):\n",
-    "    \"\"\"Executes incremental ETL pipeline in parallel.\"\"\"\n",
-    "    os.makedirs(OUTPUT_DIR, exist_ok=True)\n",
-    "    state = load_metadata_state(STATE_FILE)\n",
-    "    \n",
-    "    # get the data\n",
-    "    datasets = fetch_hospital_datasets()\n",
-    "    datasets_to_process = []\n",
-    "\n",
-    "    # Filter out files that haven't been modified since last run\n",
-    "    for ds in datasets:\n",
-    "        ds_id = ds.get(\"identifier\")\n",
-    "        api_modified = ds.get(\"modified\", \"\")\n",
-    "        last_modified = state.get(ds_id, {}).get(\"modified\")\n",
-    "\n",
-    "        if not last_modified or api_modified > last_modified:\n",
-    "            datasets_to_process.append(ds)\n",
-    "    \n",
-    "    # if all data is current at the job's execution\n",
-    "    if not datasets_to_process:\n",
-    "        logging.info(\"All Hospital datasets are up-to-date. No downloads needed.\")\n",
-    "        return\n",
-    "\n",
-    "    logging.info(f\"Processing {len(datasets_to_process)} updated/new datasets across {max_workers} worker threads.\")\n",
-    "\n",
-    "    # Process downloads and transformations concurrently\n",
-    "    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:\n",
-    "        futures = {\n",
-    "            executor.submit(process_dataset, ds, OUTPUT_DIR): ds \n",
-    "            for ds in datasets_to_process\n",
-    "        }\n",
-    "\n",
-    "        for future in concurrent.futures.as_completed(futures):\n",
-    "            result = future.result()\n",
-    "            if result:\n",
-    "                ds_id, meta = result\n",
-    "                state[ds_id] = meta\n",
-    "\n",
-    "    # Save updated execution metadata\n",
-    "    save_metadata_state(STATE_FILE, state)\n",
-    "    logging.info(\"Pipeline execution completed and metadata state saved.\")\n",
-    "\n",
-    "\n",
-    "if __name__ == \"__main__\":\n",
-    "    run_pipeline(max_workers=5)"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python (python_3_11)",
-   "language": "python",
-   "name": "python_3_11"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.11.15"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[3]:
+
+
+import concurrent.futures
+import json
+import logging
+import os
+import re
+from datetime import datetime, timezone
+import pandas as pd
+import requests
+
+
+# In[4]:
+
+
+
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+CMS_METASTORE_URL = "https://data.cms.gov/provider-data/api/1/metastore/schemas/dataset/items"
+STATE_FILE = "cms_download_metadata.json"
+OUTPUT_DIR = "./hospital_datasets"
+
+
+def to_snake_case(header: str) -> str:
+    """
+    Converts mixed-case string with spaces/special characters to clean snake_case.
+    Example: "Patients’ rating of the facility linear mean score" -> 
+             "patients_rating_of_the_facility_linear_mean_score"
+    """
+    # Remove apostrophes/quotes without adding spaces (e.g., Patients' -> Patients)
+    header = re.sub(r"['’`‘]", "", header)
+    # Replace non-alphanumeric characters with spaces
+    header = re.sub(r"[^\w\s]", " ", header)
+    # Strip leading/trailing whitespace, lowercase, and join on single underscore
+    header = header.strip().lower()
+    return re.sub(r"\s+", "_", header)
+
+
+def load_metadata_state(filepath: str) -> dict:
+    """Loads state tracking dictionary from local JSON file."""
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def save_metadata_state(filepath: str, state: dict) -> None:
+    """Saves updated state tracking dictionary to local JSON file."""
+    with open(filepath, "w") as f:
+        json.dump(state, f, indent=2)
+
+
+def fetch_hospital_datasets() -> list:
+    """Fetches full metastore catalog from CMS and filters for 'Hospitals' theme."""
+    logging.info("Fetching metastore catalog from CMS API...")
+    response = requests.get(CMS_METASTORE_URL, timeout=30)
+    response.raise_for_status()
+    all_datasets = response.json()
+    
+
+    hospital_datasets = []
+    for dataset in all_datasets:
+        themes = dataset.get("theme", [])
+        if isinstance(themes, str):
+            themes = [themes]
+
+        # Check if 'Hospitals' exists in dataset themes
+        if any("hospital" in theme.lower() for theme in themes):
+            hospital_datasets.append(dataset)
+
+    logging.info(f"Found {len(hospital_datasets)} datasets under 'Hospitals' theme.")
+    return hospital_datasets
+
+
+def process_dataset(dataset: dict, output_dir: str) -> tuple[str, dict] | None:
+    """
+    Downloads CSV distribution, standardizes column headers to snake_case,
+    and writes clean csv to output directory.
+    """
+    ds_id = dataset.get("identifier")
+    title = dataset.get("title", ds_id)
+    modified_dt = dataset.get("modified", "")
+
+    # Locate CSV download URL from distribution array
+    download_url = None
+    for dist in dataset.get("distribution", []):
+        media_type = dist.get("mediaType", "").lower()
+        fmt = dist.get("format", "").lower()
+        if "csv" in media_type or fmt == "csv":
+            download_url = dist.get("downloadURL")
+            break
+
+    if not download_url:
+        logging.warning(f"No CSV distribution found for dataset: {title}")
+        return None
+
+    logging.info(f"Downloading: {title}")
+
+    try:
+        # Read dataset into pandas DataFrame directly from stream
+        df = pd.read_csv(download_url, low_memory=False)
+
+        # Transform column headers to snake_case
+        df.columns = [to_snake_case(col) for col in df.columns]
+
+        # Generate clean local filename
+        file_slug = to_snake_case(title)
+        out_filepath = os.path.join(output_dir, f"{file_slug}.csv")
+
+        # Save processed CSV
+        df.to_csv(out_filepath, index=False)
+        logging.info(f"Successfully processed and saved: {out_filepath}")
+
+        metadata_entry = {
+            "title": title,
+            "modified": modified_dt,
+            "last_processed_at": datetime.now(timezone.utc).isoformat(),
+            "local_path": out_filepath
+        }
+        return ds_id, metadata_entry
+
+    except Exception as e:
+        logging.error(f"Failed processing dataset '{title}' ({download_url}): {e}")
+        return None
+
+
+def run_pipeline(max_workers: int = 5):
+    """Executes incremental ETL pipeline in parallel."""
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    state = load_metadata_state(STATE_FILE)
+    
+    # get the data
+    datasets = fetch_hospital_datasets()
+    datasets_to_process = []
+
+    # Filter out files that haven't been modified since last run
+    for ds in datasets:
+        ds_id = ds.get("identifier")
+        api_modified = ds.get("modified", "")
+        last_modified = state.get(ds_id, {}).get("modified")
+
+        if not last_modified or api_modified > last_modified:
+            datasets_to_process.append(ds)
+    
+    # if all data is current at the job's execution
+    if not datasets_to_process:
+        logging.info("All Hospital datasets are up-to-date. No downloads needed.")
+        return
+
+    logging.info(f"Processing {len(datasets_to_process)} updated/new datasets across {max_workers} worker threads.")
+
+    # Process downloads and transformations concurrently
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(process_dataset, ds, OUTPUT_DIR): ds 
+            for ds in datasets_to_process
+        }
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result:
+                ds_id, meta = result
+                state[ds_id] = meta
+
+    # Save updated execution metadata
+    save_metadata_state(STATE_FILE, state)
+    logging.info("Pipeline execution completed and metadata state saved.")
+
+
+if __name__ == "__main__":
+    run_pipeline(max_workers=5)
+
